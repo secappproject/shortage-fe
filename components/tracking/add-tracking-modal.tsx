@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trash2, PackagePlus } from "lucide-react";
 import { DatePicker } from "../ui/date-picker";
 import { toast } from "sonner";
@@ -46,7 +47,7 @@ export function AddTrackingModal({
   const [isLoading, setIsLoading] = useState(false);
   const role = useAuthStore((state) => state.role);
   const username = useAuthStore((state) => state.username);
-
+  
   const [projectId, setProjectId] = useState<string>("");
   const [switchboardName, setSwitchboardName] = useState("");
   const [compartmentNumber, setCompartmentNumber] = useState("");
@@ -194,7 +195,7 @@ export function AddTrackingModal({
   };
 
   return (
-    <DialogContent className="sm:max-w-4xl max-h-[90vh]">
+    <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
       <DialogHeader>
         <DialogTitle>Tambah Data Progress Tracking</DialogTitle>
         <DialogDescription>
@@ -202,233 +203,249 @@ export function AddTrackingModal({
         </DialogDescription>
       </DialogHeader>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 py-4 overflow-hidden">
-        <ScrollArea className="pr-4 md:h-[65vh]">
-          <div className="space-y-4">
-            <h4 className="font-medium text-lg">Detail Project</h4>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="project" className="text-left col-span-1">
-                Project
-              </Label>
-              <Select onValueChange={setProjectId} value={projectId}>
-                <SelectTrigger id="project" className="col-span-3">
-                  <SelectValue placeholder="Pilih WBS / Project" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>
-                      {p.projectName} ({p.wbsNumber})
+      <Tabs defaultValue="general" className="w-full flex-1 overflow-hidden flex flex-col">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="parts">Part Detected</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="general" className="flex-1 overflow-hidden">
+          <ScrollArea className="h-[50vh] md:h-[55vh] pr-4">
+            <div className="space-y-4 p-1">
+              <h4 className="font-medium text-lg">Detail Project</h4>
+              
+              {/* Project Select - Layout Atas Bawah */}
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="project">
+                  Project
+                </Label>
+                <Select onValueChange={setProjectId} value={projectId}>
+                  <SelectTrigger id="project">
+                    <SelectValue placeholder="Pilih WBS / Project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        {p.projectName} ({p.wbsNumber})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Switchboard - Layout Atas Bawah */}
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="switchboard">
+                  Switchboard
+                </Label>
+                <Input
+                  id="switchboard"
+                  value={switchboardName}
+                  onChange={(e) => setSwitchboardName(e.target.value)}
+                  placeholder="Misal: SWB-01A"
+                />
+              </div>
+
+              {/* Compartment - Layout Atas Bawah */}
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="compartment">
+                  Compartment
+                </Label>
+                <Input
+                  id="compartment"
+                  value={compartmentNumber}
+                  onChange={(e) => setCompartmentNumber(e.target.value)}
+                  placeholder="Misal: C-01"
+                />
+              </div>
+
+              <h4 className="font-medium text-lg pt-4">Progress Manufaktur</h4>
+              
+              {/* Mech Assembly - Layout Atas Bawah */}
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="mechAssemblyBy">
+                  Mech. Assembly
+                </Label>
+                <Input
+                  id="mechAssemblyBy"
+                  value={mechAssemblyBy}
+                  onChange={(e) => setMechAssemblyBy(e.target.value)}
+                  placeholder="Nama PIC/Vendor"
+                />
+              </div>
+
+              {/* Wiring By - Layout Atas Bawah */}
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="wiringBy">
+                  Wiring By
+                </Label>
+                <Input
+                  id="wiringBy"
+                  value={wiringBy}
+                  onChange={(e) => setWiringBy(e.target.value)}
+                  placeholder="Nama PIC/Vendor"
+                />
+              </div>
+
+              {/* Wiring Type - Layout Atas Bawah */}
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="wiringType">
+                  Wiring Type
+                </Label>
+                <Input
+                  id="wiringType"
+                  value={wiringType}
+                  onChange={(e) => setWiringType(e.target.value)}
+                  placeholder="Misal: Direct, Indirect"
+                />
+              </div>
+
+              <h4 className="font-medium text-lg pt-4">Progress Test</h4>
+              
+              {/* Status - Layout Atas Bawah */}
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="statusTest">
+                  Status
+                </Label>
+                <Select onValueChange={handleStatusChange} value={statusTest}>
+                  <SelectTrigger id="statusTest">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Waiting">Waiting</SelectItem>
+                    <SelectItem value="Tested">Tested</SelectItem>
+                    <SelectItem value="Already Compared with BOM">
+                      Already Compared with BOM
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="switchboard" className="text-left col-span-1">
-                Switchboard
-              </Label>
-              <Input
-                id="switchboard"
-                value={switchboardName}
-                onChange={(e) => setSwitchboardName(e.target.value)}
-                className="col-span-3"
-                placeholder="Misal: SWB-01A"
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="compartment" className="text-left col-span-1">
-                Compartment
-              </Label>
-              <Input
-                id="compartment"
-                value={compartmentNumber}
-                onChange={(e) => setCompartmentNumber(e.target.value)}
-                className="col-span-3"
-                placeholder="Misal: C-01"
-              />
-            </div>
-
-            <h4 className="font-medium text-lg pt-4">Progress Manufaktur</h4>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="mechAssemblyBy" className="text-left col-span-1">
-                Mech. Assembly
-              </Label>
-              <Input
-                id="mechAssemblyBy"
-                value={mechAssemblyBy}
-                onChange={(e) => setMechAssemblyBy(e.target.value)}
-                className="col-span-3"
-                placeholder="Nama PIC/Vendor"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="wiringBy" className="text-left col-span-1">
-                Wiring By
-              </Label>
-              <Input
-                id="wiringBy"
-                value={wiringBy}
-                onChange={(e) => setWiringBy(e.target.value)}
-                className="col-span-3"
-                placeholder="Nama PIC/Vendor"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="wiringType" className="text-left col-span-1">
-                Wiring Type
-              </Label>
-              <Input
-                id="wiringType"
-                value={wiringType}
-                onChange={(e) => setWiringType(e.target.value)}
-                className="col-span-3"
-                placeholder="Misal: Direct, Indirect"
-              />
-            </div>
-
-            <h4 className="font-medium text-lg pt-4">Progress Test</h4>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="statusTest" className="text-left col-span-1">
-                Status
-              </Label>
-              <Select onValueChange={handleStatusChange} value={statusTest}>
-                <SelectTrigger id="statusTest" className="col-span-3">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Waiting">Waiting</SelectItem>
-                  <SelectItem value="Tested">Tested</SelectItem>
-                  <SelectItem value="Already Compared with BOM">
-                    Already Compared with BOM
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="testedBy" className="text-left col-span-1">
-                Tested By
-              </Label>
-              <Input
-                id="testedBy"
-                value={testedBy}
-                onChange={(e) => setTestedBy(e.target.value)}
-                className="col-span-3"
-                placeholder="Nama PIC Tester"
-                disabled={statusTest === "Waiting"}
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="dateTested" className="text-left col-span-1">
-                Date Tested
-              </Label>
-              <div className="col-span-3">
-                <DatePicker
-                  value={dateTested}
-                  onValueChange={setDateTested}
+              {/* Tested By - Layout Atas Bawah */}
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="testedBy">
+                  Tested By
+                </Label>
+                <Input
+                  id="testedBy"
+                  value={testedBy}
+                  onChange={(e) => setTestedBy(e.target.value)}
+                  placeholder="Nama PIC Tester"
                   disabled={statusTest === "Waiting"}
                 />
               </div>
-            </div>
-          </div>
-        </ScrollArea>
 
-        <div className="space-y-4 flex flex-col md:h-[65vh] overflow-hidden">
-          <h4 className="font-medium text-lg">List Part Detected (Actual)</h4>
-
-          <ScrollArea className="flex-grow border rounded-md p-4">
-            <div className="space-y-4">
-              {actualParts.map((part) => (
-                <div
-                  key={part.material}
-                  className="p-3 border rounded-lg space-y-3"
-                >
-                  <div className="flex justify-between items-center">
-                    <Label className="font-medium">{part.material}</Label>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-red-600"
-                      onClick={() => handleRemovePart(part.material)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Label htmlFor={`qty-${part.material}`}>Qty</Label>
-                    <Input
-                      id={`qty-${part.material}`}
-                      type="number"
-                      className="h-8 w-20"
-                      min="1"
-                      value={part.qty}
-                      onChange={(e) =>
-                        handlePartQtyChange(
-                          part.material,
-                          parseInt(e.target.value) || 1
-                        )
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Terlihat di Views:</Label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {VIEW_OPTIONS.map((view) => (
-                        <div
-                          key={view}
-                          className="flex items-center space-x-2"
-                        >
-                          <Checkbox
-                            id={`view-${part.material}-${view}`}
-                            checked={part.views.includes(view)}
-                            onCheckedChange={(checked) =>
-                              handlePartViewChange(
-                                part.material,
-                                view,
-                                !!checked
-                              )
-                            }
-                          />
-                          <Label
-                            htmlFor={`view-${part.material}-${view}`}
-                            className="font-normal capitalize"
-                          >
-                            {view}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+              {/* Date Tested - Layout Atas Bawah */}
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="dateTested">
+                  Date Tested
+                </Label>
+                <div>
+                  <DatePicker
+                    value={dateTested}
+                    onValueChange={setDateTested}
+                    disabled={statusTest === "Waiting"}
+                  />
                 </div>
-              ))}
-              {actualParts.length === 0 && (
-                <p className="text-sm text-center text-muted-foreground py-4">
-                  Belum ada part ditambahkan.
-                </p>
-              )}
+              </div>
             </div>
           </ScrollArea>
+        </TabsContent>
 
-          <div className="flex gap-2">
-            <Input
-              placeholder="Ketik nama part baru..."
-              value={newPartName}
-              onChange={(e) => setNewPartName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleAddPart();
-              }}
-            />
-            <Button onClick={handleAddPart} size="icon">
-              <PackagePlus className="h-4 w-4" />
-            </Button>
+        <TabsContent value="parts" className="flex-1 overflow-hidden flex flex-col h-[50vh] md:h-[55vh]">
+          <div className="flex-1 overflow-hidden flex flex-col">
+           
+            <div className="flex-grow rounded-md mb-4 overflow-y-auto">
+              <div className="space-y-4">
+                {actualParts.map((part) => (
+                  <div
+                    key={part.material}
+                    className="p-3 border rounded-lg space-y-3"
+                  >
+                    <div className="flex justify-between items-center">
+                      <Label className="font-medium">{part.material}</Label>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-red-600"
+                        onClick={() => handleRemovePart(part.material)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <Label htmlFor={`qty-${part.material}`}>Qty</Label>
+                      <Input
+                        id={`qty-${part.material}`}
+                        type="number"
+                        className="h-8 w-20"
+                        min="1"
+                        value={part.qty}
+                        onChange={(e) =>
+                          handlePartQtyChange(
+                            part.material,
+                            parseInt(e.target.value) || 1
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Terlihat di Views:</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {VIEW_OPTIONS.map((view) => (
+                          <div
+                            key={view}
+                            className="flex items-center space-x-2"
+                          >
+                            <Checkbox
+                              id={`view-${part.material}-${view}`}
+                              checked={part.views.includes(view)}
+                              onCheckedChange={(checked) =>
+                                handlePartViewChange(
+                                  part.material,
+                                  view,
+                                  !!checked
+                                )
+                              }
+                            />
+                            <Label
+                              htmlFor={`view-${part.material}-${view}`}
+                              className="font-normal capitalize text-xs"
+                            >
+                              {view}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {actualParts.length === 0 && (
+                  <p className="text-sm text-center text-muted-foreground pb-10">
+                    Belum ada part ditambahkan. Gunakan input di bawah untuk menambah.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-auto pt-2">
+              <Input
+                placeholder="Ketik nama part baru..."
+                value={newPartName}
+                onChange={(e) => setNewPartName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAddPart();
+                }}
+              />
+              <Button onClick={handleAddPart} size="icon">
+                <PackagePlus className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
 
-      <DialogFooter>
+      <DialogFooter className="mt-4">
         <Button variant="outline" onClick={() => setIsOpen(false)}>
           Batal
         </Button>

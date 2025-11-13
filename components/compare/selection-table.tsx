@@ -1,14 +1,12 @@
 "use client";
 
-import * as React from "react";
+import { useState } from "react";
 import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
   useReactTable,
-  SortingState,
-  getSortedRowModel,
+  getFilteredRowModel,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -19,109 +17,104 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 interface SelectionTableProps<TData, TValue> {
-  data: TData[];
   columns: ColumnDef<TData, TValue>[];
-  onRowSelect: (row: TData | null) => void;
-  selectedId: number | string | null;
+  data: TData[];
   searchKey: string;
-  searchPlaceholder: string;
-  rowDisabledKey?: keyof TData;
+  searchPlaceholder?: string;
+  selectedId: string | number | null;
+  onRowSelect: (row: TData | null) => void;
+  rowDisabledKey?: string;
 }
 
-export function SelectionTable<TData extends { id: any }, TValue>({
-  data,
+export function SelectionTable<TData, TValue>({
   columns,
-  onRowSelect,
-  selectedId,
+  data,
   searchKey,
-  searchPlaceholder,
+  searchPlaceholder = "Search...",
+  selectedId,
+  onRowSelect,
   rowDisabledKey,
 }: SelectionTableProps<TData, TValue>) {
-  const [globalFilter, setGlobalFilter] = React.useState("");
-  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = useState("");
 
   const table = useReactTable({
     data,
     columns,
-    state: {
-      globalFilter,
-      sorting,
-    },
-    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
+    state: {
+      globalFilter,
+    },
+    onGlobalFilterChange: setGlobalFilter,
     globalFilterFn: (row, columnId, filterValue) => {
-      const search = filterValue.toLowerCase();
-
-      const rowData = Object.values(row.original as any)
-        .join(" ")
-        .toLowerCase();
-      return rowData.includes(search);
+      const value = row.getValue(searchKey) as string;
+      return value?.toLowerCase().includes(filterValue.toLowerCase());
     },
   });
 
-  const handleRowClick = (row: TData) => {
-    if (rowDisabledKey) {
-      const disabledValue = row[rowDisabledKey] as any;
-      if (!disabledValue || (Array.isArray(disabledValue) && disabledValue.length === 0)) {
-        return;
-      }
-    }
-
-    if (row.id === selectedId) {
-      onRowSelect(null);
-    } else {
-      onRowSelect(row);
-    }
-  };
-
   return (
-    <div className="space-y-2">
-      <Input
-        placeholder={searchPlaceholder}
-        value={globalFilter}
-        onChange={(event) => setGlobalFilter(event.target.value)}
-        className="w-full"
-      />
-      <ScrollArea className="h-72 w-full rounded-md border">
-        <Table>
-          <TableHeader>
+    <div className="w-full flex flex-col gap-4">
+      {/* Search Bar: Diam di tempat */}
+      <div className="flex items-center">
+        <Input
+          placeholder={searchPlaceholder}
+          value={globalFilter ?? ""}
+          onChange={(event) => setGlobalFilter(event.target.value)}
+          className="max-w-sm"
+        />
+      </div>
+
+      {/* PERBAIKAN UTAMA:
+        Ganti 'flex-1' menjadi 'h-[350px]' (atau max-h).
+        Ini memaksa area tabel memiliki tinggi tetap.
+        Jika data > 350px, scrollbar vertikal akan muncul di dalam kotak ini.
+      */}
+      <div className="rounded-md border h-[350px] overflow-auto relative bg-white dark:bg-slate-950">
+        <Table className="min-w-[800px]">
+          <TableHeader className="sticky top-0 bg-background z-10">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
+                {headerGroup.headers.map((header) => {
+                  return (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  );
+                })}
               </TableRow>
             ))}
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => {
-                const isDisabled =
-                  rowDisabledKey
-                    ? !(row.original[rowDisabledKey] as any)?.length
-                    : false;
-                const isSelected = row.original.id === selectedId;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const rowId = (row.original as any).id;
+                const isSelected = rowId === selectedId;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const isDisabled = rowDisabledKey && (row.original as any)[rowDisabledKey];
 
                 return (
                   <TableRow
                     key={row.id}
-                    data-selected={isSelected}
-                    data-disabled={isDisabled}
-                    onClick={() => handleRowClick(row.original)}
-                    className="cursor-pointer data-[selected=true]:bg-primary/10 data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-40"
+                    data-state={isSelected ? "selected" : undefined}
+                    className={cn(
+                      "cursor-pointer hover:bg-muted/50 transition-colors",
+                      isSelected && "bg-[#008A15] dark:bg-[#008A15] border-l-4 border-l-[#008A15]",
+                      isDisabled && "opacity-50 pointer-events-none bg-gray-100 dark:bg-gray-800"
+                    )}
+                    onClick={() => {
+                      if (!isDisabled) {
+                        onRowSelect(isSelected ? null : row.original);
+                      }
+                    }}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
@@ -140,13 +133,13 @@ export function SelectionTable<TData extends { id: any }, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  Tidak ada data.
+                  No results.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

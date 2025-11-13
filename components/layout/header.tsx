@@ -34,7 +34,7 @@ export function Header({ toggleSidebar, isSidebarCollapsed }: HeaderProps) {
   };
 
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-white px-6 sticky top-0 z-10 dark:bg-gray-950">
+    <header className="hidden md:flex h-16 items-center justify-between border-b bg-white px-6 sticky top-0 z-10 dark:bg-gray-950">
       <div className="flex items-center gap-4">
         <Button onClick={toggleSidebar} variant="outline" size="icon" className="hidden md:flex">
           {isSidebarCollapsed ? <PanelRightClose className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}

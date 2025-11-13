@@ -76,7 +76,7 @@ export const getBomColumns = (
 
   {
     id: "defaultMaterials",
-    header: "Material (Versi Default)",
+    header: "Material",
     cell: ({ row }) => {
       const defaultMaterials: BomMaterialItem[] =
         row.original.versions.get("default") || [];
@@ -121,7 +121,7 @@ export const getBomColumns = (
   },
   {
     id: "totalQty",
-    header: "Total Qty (Default)",
+    header: "Total Qty",
     cell: ({ row }) => {
       const defaultVersion = row.original.versions.get("default") || [];
       const total = defaultVersion.reduce((sum, item) => sum + item.qty, 0);

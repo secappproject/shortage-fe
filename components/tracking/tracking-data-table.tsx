@@ -234,7 +234,7 @@ export function TrackingDataTable<TData extends ProjectTracking, TValue>({
         </Table>
       </div>
 
-      <div className="flex items-center justify-between py-4">
+      <div className="flex flex-col items-center justify-between gap-4 py-4 mb-12 sm:flex-row">
         <div className="flex items-center space-x-2">
           <p className="text-sm font-light">Baris per halaman:</p>
           <Select
@@ -256,7 +256,7 @@ export function TrackingDataTable<TData extends ProjectTracking, TValue>({
           </Select>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-col-reverse items-center gap-4 sm:flex-row sm:gap-6">
           <div className="flex w-[100px] items-center justify-center text-sm font-light">
             Page {table.getState().pagination.pageIndex + 1} / {" "}
             {table.getPageCount()}

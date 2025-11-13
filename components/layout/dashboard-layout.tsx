@@ -12,10 +12,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr]">
       <Sidebar isCollapsed={isCollapsed} />
       <div className="relative flex flex-col h-screen overflow-y-auto">
-        <Header 
-          toggleSidebar={toggleSidebar} 
-          isSidebarCollapsed={isCollapsed} 
-        />
+        <div className="hidden md:block">
+          <Header 
+            toggleSidebar={toggleSidebar} 
+            isSidebarCollapsed={isCollapsed} 
+          />
+        </div>
         
         <div className="p-4 lg:p-6">
             {children}

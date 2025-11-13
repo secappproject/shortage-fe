@@ -16,6 +16,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Scale } from "lucide-react";
 import { toast } from "sonner";
 import { SelectionTable } from "./selection-table";
@@ -207,90 +208,132 @@ export function AddCompareModal({
   const selectedTrackingName = selectedTracking
     ? `${selectedTracking.switchboardName} / ${selectedTracking.compartmentNumber}`
     : "Belum Dipilih";
+  const BomTableSection = (
+    <div className="flex flex-col space-y-2 w-full h-full">
+      <h4 className="font-medium hidden md:block">1. Pilih BOM</h4>
+      <div className="flex-1 overflow-hidden">
+        <SelectionTable
+          data={bomCodeSummaryList}
+          columns={bomColumns}
+          searchKey="bomCode"
+          searchPlaceholder="Cari BOM code atau material..."
+          selectedId={selectedBomCode}
+          onRowSelect={(row) =>
+            setSelectedBomCode(row ? (row as BomSummary).bomCode : null)
+          }
+        />
+      </div>
+    </div>
+  );
+
+  const TrackingTableSection = (
+    <div className="flex flex-col space-y-2 w-full h-full">
+      <h4 className="font-medium hidden md:block">
+        2. Pilih Actual Compartment
+      </h4>
+      <div className="flex-1 overflow-hidden">
+        <SelectionTable
+          data={trackingList}
+          columns={trackingColumns}
+          searchKey="compartmentNumber"
+          searchPlaceholder="Cari kompartemen atau project..."
+          selectedId={selectedTracking?.id || null}
+          onRowSelect={(row) =>
+            setSelectedTracking(row as ProjectTrackingView | null)
+          }
+          rowDisabledKey="actualParts"
+        />
+      </div>
+    </div>
+  );
 
   return (
-    <DialogContent className="sm:max-w-6xl">
-      <DialogHeader>
-        <DialogTitle>Buat Perbandingan Baru</DialogTitle>
-        <DialogDescription>
-          Pilih BOM (berdasarkan versi aktifnya) dan Actual Compartment yang ingin
-          Anda pasangkan.
-        </DialogDescription>
-      </DialogHeader>
+    <DialogContent className="sm:max-w-6xl max-h-[95vh] flex flex-col p-0 sm:p-6">
+      <div className="p-6 pb-2 sm:p-0 sm:pb-4">
+        <DialogHeader>
+          <DialogTitle>Buat Perbandingan Baru</DialogTitle>
+          <DialogDescription>
+            Pilih BOM dan Actual Compartment untuk dibandingkan.
+          </DialogDescription>
+        </DialogHeader>
+      </div>
 
-      {isLoadingData ? (
-        <div className="flex justify-center items-center h-80">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-6 py-4">
-          <div>
-            <h4 className="font-medium mb-2">1. Pilih BOM</h4>
-            <SelectionTable
-              data={bomCodeSummaryList}
-              columns={bomColumns}
-              searchKey="bomCode"
-              searchPlaceholder="Cari BOM code atau material..."
-              selectedId={selectedBomCode}
-              onRowSelect={(row) =>
-                setSelectedBomCode(row ? (row as BomSummary).bomCode : null)
-              }
-            />
+      <div className="flex-1 overflow-hidden px-4 sm:px-0">
+        {isLoadingData ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
-          <div>
-            <h4 className="font-medium mb-2">2. Pilih Actual Compartment</h4>
-            <SelectionTable
-              data={trackingList}
-              columns={trackingColumns}
-              searchKey="compartmentNumber"
-              searchPlaceholder="Cari kompartemen atau project..."
-              selectedId={selectedTracking?.id || null}
-              onRowSelect={(row) =>
-                setSelectedTracking(row as ProjectTrackingView | null)
-              }
-              rowDisabledKey="actualParts"
-            />
-          </div>
-        </div>
-      )}
+        ) : (
+          <>
+            <div className="hidden md:flex flex-col h-full overflow-y-auto gap-8 p-1 pr-2">
+              {BomTableSection}
+              <div className="border-t pt-6">{TrackingTableSection}</div>
+            </div>
 
-      <DialogFooter className="sm:justify-between">
-        <div className="text-sm text-muted-foreground hidden sm:block">
-          <p>
-            <strong>BOM:</strong> {selectedBomName}
-          </p>
-          <p>
-            <strong>Actual:</strong> {selectedTrackingName}
-          </p>
-        </div>
-        <div>
-          <Button
-            variant="outline"
-            onClick={() => setIsOpen(false)}
-            className="mr-2"
-          >
-            Batal
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={
-              isLoadingData ||
-              isSaving ||
-              !selectedBomCode ||
-              !selectedTracking
-            }
-          >
-            {isSaving ? (
-              "Memproses..."
-            ) : (
-              <>
-                <Scale className="mr-2 h-4 w-4" />
-                Simpan & Bandingkan
-              </>
-            )}
-          </Button>
-        </div>
-      </DialogFooter>
+            <div className="md:hidden h-full flex flex-col">
+              <Tabs
+                defaultValue="bom"
+                className="flex-1 flex flex-col overflow-hidden"
+              >
+                <TabsList className="grid w-full grid-cols-2 mb-2">
+                  <TabsTrigger value="bom">1. Pilih BOM</TabsTrigger>
+                  <TabsTrigger value="tracking">2. Actual Part</TabsTrigger>
+                </TabsList>
+
+                <TabsContent
+                  value="bom"
+                  className="flex-1 overflow-y-auto mt-0"
+                >
+                  {BomTableSection}
+                </TabsContent>
+
+                <TabsContent
+                  value="tracking"
+                  className="flex-1 overflow-y-auto mt-0"
+                >
+                  {TrackingTableSection}
+                </TabsContent>
+              </Tabs>
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="p-4 sm:p-0 sm:pt-4 border-t sm:border-none mt-auto bg-background sm:bg-transparent">
+        <DialogFooter className="flex flex-col sm:flex-row sm:justify-between gap-4">
+          <div className="text-xs text-muted-foreground text-left">
+            <p className="truncate max-w-[300px]">
+              <strong>BOM:</strong> {selectedBomName}
+            </p>
+            <p className="truncate max-w-[300px]">
+              <strong>Actual:</strong> {selectedTrackingName}
+            </p>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setIsOpen(false)}>
+              Batal
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={
+                isLoadingData ||
+                isSaving ||
+                !selectedBomCode ||
+                !selectedTracking
+              }
+            >
+              {isSaving ? (
+                "Memproses..."
+              ) : (
+                <>
+                  <Scale className="mr-2 h-4 w-4" />
+                  Bandingkan
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogFooter>
+      </div>
     </DialogContent>
   );
 }

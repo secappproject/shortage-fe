@@ -145,8 +145,8 @@ export function AddUserModal({ setIsOpen, onUserAdded }: AddUserModalProps) {
 
       <ScrollArea className="max-h-[60vh] pr-6">
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="username" className="text-left">
+          <div className="flex-col items-center">
+            <Label htmlFor="username" className="text-left mb-4">
               Username
             </Label>
             <Input
@@ -156,8 +156,8 @@ export function AddUserModal({ setIsOpen, onUserAdded }: AddUserModalProps) {
               className="col-span-3"
             />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="password" className="text-left">
+          <div className="flex-col items-center">
+            <Label htmlFor="password" className="text-left mb-4">
               Password
             </Label>
             <Input
@@ -168,8 +168,8 @@ export function AddUserModal({ setIsOpen, onUserAdded }: AddUserModalProps) {
               className="col-span-3"
             />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="role" className="text-left">
+          <div className="flex-col items-center">
+            <Label htmlFor="role" className="text-left mb-4">
               Role
             </Label>
             <Select value={userRole} onValueChange={setUserRole}>
@@ -189,8 +189,8 @@ export function AddUserModal({ setIsOpen, onUserAdded }: AddUserModalProps) {
 
           {isVendor && (
             <>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="companyName" className="text-left">
+              <div className="flex-col items-center">
+                <Label htmlFor="companyName" className="text-left mb-4">
                   Nama Perusahaan
                 </Label>
                 <Select value={companyName} onValueChange={setCompanyName}>
@@ -212,8 +212,8 @@ export function AddUserModal({ setIsOpen, onUserAdded }: AddUserModalProps) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="vendorType" className="text-left">
+              <div className="flex-col items-center">
+                <Label htmlFor="vendorType" className="text-left mb-4">
                   Tipe Vendor
                 </Label>
                 <Select value={vendorType} onValueChange={setVendorType}>

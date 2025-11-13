@@ -65,7 +65,7 @@ export function AdminProfileView() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-10">
+      <div className="container mx-auto pb-10">
         <h1 className="text-3xl mb-4">Manajemen Pengguna</h1>
         <p className="text-muted-foreground mb-6 font-light">
           Mengatur semua akun pengguna dalam sistem.
@@ -85,7 +85,7 @@ export function AdminProfileView() {
   }
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="container mx-auto pb-10">
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
         <div className="md:flex md:justify-between md:items-center mb-4">
           <div className="mb-4 md:mb-0">

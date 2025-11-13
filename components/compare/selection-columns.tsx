@@ -85,7 +85,7 @@ export const getBomCodeSummaryColumns = (
   },
   {
     accessorKey: "materialPreview",
-    header: "Material (Versi Default)",
+    header: "Material",
     cell: ({ row }) => {
       const materials = row.getValue("materialPreview") as BomMaterialItem[];
 

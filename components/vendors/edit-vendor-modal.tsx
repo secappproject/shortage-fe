@@ -106,8 +106,8 @@ export function EditVendorModal({
       </DialogHeader>
 
       <div className="grid gap-4 py-4">
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="companyName" className="text-left">
+        <div className="flex-col items-center">
+          <Label htmlFor="companyName" className="text-left mb-4">
             Nama Perusahaan
           </Label>
           <Input
@@ -118,8 +118,8 @@ export function EditVendorModal({
           />
         </div>
         
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="vendorTypeSelect" className="text-left">
+        <div className="flex-col items-center">
+          <Label htmlFor="vendorTypeSelect" className="text-left mb-4">
             Tipe Vendor
           </Label>
           <Select value={selectedType} onValueChange={setSelectedType}>
@@ -138,8 +138,8 @@ export function EditVendorModal({
         </div>
 
         {selectedType === OTHER_VALUE && (
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="customVendorType" className="text-left">
+          <div className="flex-col items-center">
+            <Label htmlFor="customVendorType" className="text-left mb-4">
               Tipe Lainnya
             </Label>
             <Input

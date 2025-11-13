@@ -204,14 +204,14 @@ const handleDrawMouseUp = () => {
         if (ctx && img) { 
           ctx.drawImage(
             img,
-            realX1, // source x
-            realY1, // source y
-            width,  // source width
-            height, // source height
-            0,      // dest x
-            0,      // dest y
-            width,  // dest width
-            height  // dest height
+            realX1, 
+            realY1, 
+            width,  
+            height,
+            0,   
+            0,   
+            width, 
+            height 
           );
           cropDataUrl = cropCanvas.toDataURL('image/jpeg');
         }

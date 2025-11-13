@@ -8,7 +8,7 @@ export function UserProfileView() {
   );
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="container mx-auto pb-10">
       <h1 className="text-3xl mb-6">Profil Saya</h1>
       <Card className="max-w-lg">
         <CardHeader>

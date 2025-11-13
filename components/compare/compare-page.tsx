@@ -77,7 +77,7 @@ export function ComparePage() {
 
   if (role !== "Admin") {
     return (
-      <div className="container mx-auto py-10">
+      <div className="container mx-auto pb-10">
         <h1 className="text-3xl text-red-600">Akses Ditolak</h1>
         <p className="text-muted-foreground mt-2">
           Halaman ini hanya untuk Admin.
@@ -91,7 +91,7 @@ export function ComparePage() {
   }
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="container mx-auto pb-10">
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
         <div className="md:flex md:justify-between md:items-center mb-4">
           <div className="mb-4 md:mb-0">

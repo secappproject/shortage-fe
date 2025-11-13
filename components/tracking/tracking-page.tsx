@@ -112,11 +112,11 @@ export function TrackingPage() {
   const canAddData = role === "Admin" || role === "PIC";
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="container mx-auto pb-12">
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
         <div className="md:flex md:justify-between md:items-center mb-4">
           <div className="mb-4 md:mb-0">
-            <h1 className="text-3xl">Project Progress Tracking Actual Compartment</h1>
+            <h1 className="text-3xl">Scan Actual Compartment</h1>
             <p className="text-muted-foreground font-light mt-1">
               Memantau progres mekanik, wiring, dan testing per kompartemen.
             </p>

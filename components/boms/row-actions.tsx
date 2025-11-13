@@ -61,7 +61,7 @@ export function BomDataTableRowActions({
             onSelect={() => setIsEditOpen(true)}
             disabled={defaultVersionMaterials.length === 0}
           >
-            Edit Versi "default"
+            Edit Versi Aktif
           </DropdownMenuItem>
           <DropdownMenuItem
             className="text-red-600"

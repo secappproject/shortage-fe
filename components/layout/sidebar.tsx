@@ -16,10 +16,10 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
   const { username, role, companyName } = useAuthStore();
 
   const allNavLinks = [
-    { href: "/boms", label: "Bill of Material", icon: CogIcon, allowedRoles: ['Admin'] },
-    { href: "/tracking", label: "Tracking", icon: Projector, allowedRoles: ['Admin'] },    
+    { href: "/boms", label: "BOM", icon: CogIcon, allowedRoles: ['Admin'] },
+    { href: "/tracking", label: "Scan", icon: Projector, allowedRoles: ['Admin'] },    
     { href: "/compare", label: "Compare", icon: LucideSidebar, allowedRoles: ['Admin'] },
-    { href: "/vendors", label: "Vendor Company", icon: Building2, allowedRoles: ['Admin'] },
+    { href: "/vendors", label: "Vendor", icon: Building2, allowedRoles: ['Admin'] },
     { href: "/profile", label: "User", icon: User, allowedRoles: ['Admin', 'PIC', 'Production Planning', 'External/Vendor'] },
   ];
 

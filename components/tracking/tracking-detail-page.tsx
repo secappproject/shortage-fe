@@ -33,7 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
 import {
   Dialog,
@@ -69,7 +69,9 @@ import {
   Edit,
   MousePointer,
   Square,
-  List,
+  ScanEye,
+  ListTodo,
+  UploadCloud
 } from "lucide-react";
 import { TrackingAuthSkeleton } from "./tracking-skeleton";
 import { Badge } from "../ui/badge";
@@ -90,6 +92,7 @@ import { Separator } from "@/components/ui/separator";
 import { BOX_COLORS, simpleStringHash } from "@/lib/colors";
 import { AnnotationCanvas } from "./annotation-canvas";
 
+// ... (Type Definitions remain unchanged)
 type UploadedFileState = {
   file: File | null;
   preview: string;
@@ -204,6 +207,12 @@ export function DetailTrackingPage() {
     return new File([u8arr], filename, { type: mime });
   }
 
+  // ... (All useEffects and helper functions remain strictly identical)
+  // ... (getInitialData, groupedDetections, handleFileChange, handleStartDetection, etc.)
+  // I will assume the logic code is unchanged here for brevity to fit the response 
+  // and focus on the layout structure below.
+  // -----------------------------------------------------------------------
+  
   useEffect(() => {
     setIsClient(true);
     if (!role || !trackingId) return;
@@ -1036,8 +1045,558 @@ export function DetailTrackingPage() {
     return <TrackingAuthSkeleton />;
   }
 
+  // --- LAYOUT COMPONENTS START ---
+  // We extract these to avoid duplication between desktop (Grid) and mobile (Tabs) layouts
+
+  const uploadSection = (
+    <Card className="h-full flex flex-col">
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>1. Upload & View</CardTitle>
+            <CardDescription className="mt-2 line-clamp-1">
+              {hasSavedDetections
+                ? "Deteksi tersimpan."
+                : "Drag files / click select."}
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Detection Settings</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-6 py-4">
+                  <div className="space-y-3">
+                    <Label
+                      htmlFor="confidence"
+                      className="flex justify-between mb-2"
+                    >
+                      <span>Confidence</span>
+                      <span className="text-primary">
+                        {confidence.toFixed(2)}
+                      </span>
+                    </Label>
+                    <Slider
+                      id="confidence"
+                      defaultValue={[confidence]}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onValueChange={(val) => setConfidence(val[0])}
+                      disabled={
+                        !canEdit || isDetecting || hasSavedDetections
+                      }
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label
+                      htmlFor="iou"
+                      className="flex justify-between mb-2"
+                    >
+                      <span>IoU</span>
+                      <span className="text-primary">
+                        {iou.toFixed(2)}
+                      </span>
+                    </Label>
+                    <Slider
+                      id="iou"
+                      defaultValue={[iou]}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onValueChange={(val) => setIou(val[0])}
+                      disabled={
+                        !canEdit || isDetecting || hasSavedDetections
+                      }
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    onClick={() =>
+                      (
+                        document.querySelector(
+                          '[data-state="open"] [aria-label="Close"]'
+                        ) as HTMLElement
+                      )?.click()
+                    }
+                  >
+                    Done
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Button
+              onClick={handleSelectClick}
+              disabled={!canEdit || isDetecting || hasSavedDetections}
+            >
+              <Upload className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Select</span>
+            </Button>
+            <Input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleFileChange}
+              disabled={!canEdit || isDetecting || hasSavedDetections}
+              className="hidden"
+            />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent
+        className={`flex flex-col flex-grow h-[52vh] overflow-scroll p-4 transition-colors ${
+          isDragging
+            ? "bg-primary/5 ring-2 ring-primary ring-inset"
+            : hasSavedDetections
+            ? "bg-muted/30"
+            : "bg-transparent"
+        }`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {uploadedFiles.length > 0 ? (
+          <ScrollArea className="flex-grow rounded-md p-2">
+            <div className="space-y-3">
+              {uploadedFiles.map((file, index) => (
+                <div
+                  key={file.preview}
+                  className="flex items-center gap-3 p-2 border rounded-lg"
+                >
+                  <Image
+                    src={file.preview}
+                    alt={file.file?.name || `Preview ${index}`}
+                    width={64}
+                    height={64}
+                    className="h-16 w-16 object-cover rounded-md bg-muted"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm truncate">
+                      {file.file?.name || `${file.view} (Tersimpan)`}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {file.file
+                        ? `${(file.file.size / 1024 / 1024).toFixed(
+                            2
+                          )} MB`
+                        : "Deteksi tersimpan"}
+                    </p>
+                    <Select
+                      value={file.view || ""}
+                      onValueChange={(value) => setFileView(index, value)}
+                      disabled={
+                        !canEdit || isDetecting || hasSavedDetections
+                      }
+                    >
+                      <SelectTrigger className="h-8 text-xs mt-1">
+                        <SelectValue placeholder="Pilih View" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {VIEW_OPTIONS.map((v) => (
+                          <SelectItem
+                            key={v}
+                            value={v}
+                            className="capitalize"
+                          >
+                            {v}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {hasSavedDetections && canEdit && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => openEditView(file.view!)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-red-600"
+                    onClick={() => removeUploadedFile(index)}
+                    disabled={
+                      !canEdit ||
+                      isDetecting ||
+                      hasSavedDetections ||
+                      !file.file
+                    }
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        ) : (
+          <div className="flex-grow text-center py-16 border border-dashed rounded-md flex flex-col justify-center items-center">
+            <ImageIcon
+              className="mx-auto h-12 w-12 text-muted-foreground mb-4"
+            />
+            <h3 className="text-lg mb-2 font-regular">
+              {hasSavedDetections
+                ? "Deteksi Tersimpan"
+                : "No images uploaded"}
+            </h3>
+            <p className="text-sm font-light text-muted-foreground">
+              {hasSavedDetections
+                ? "Klik 'Reset' untuk upload ulang."
+                : 'Drag files here.'}
+            </p>
+          </div>
+        )}
+      </CardContent>
+      <CardFooter>
+        {hasSavedDetections ? (
+          <Button
+            className="w-full"
+            variant="destructive"
+            onClick={handleResetDetection}
+            disabled={!canEdit || isResetting || isDetecting}
+          >
+            {isResetting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Undo2 className="mr-2 h-4 w-4" />
+            )}
+            Reset Deteksi
+          </Button>
+        ) : (
+          <Button
+            className="w-full"
+            onClick={handleStartDetection}
+            disabled={!canEdit || !canStartDetection || isDetecting}
+          >
+            {isDetecting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Bot className="mr-2 h-4 w-4" />
+            )}
+            Mulai Deteksi ({uploadedFiles.length})
+          </Button>
+        )}
+      </CardFooter>
+    </Card>
+  );
+
+  const detectionSection = (
+    <Card className="h-full flex flex-col">
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>2. Hasil Deteksi</CardTitle>
+            <CardDescription className="mt-2">
+              Hasil deteksi per part.
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleMigrateAll}
+            disabled={
+              !canEdit || isDetecting || unmigratedPartsCount === 0
+            }
+          >
+            <SendToBack className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Move All to Final</span>
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="flex flex-col flex-grow h-[60vh] overflow-scroll">
+        <ScrollArea className="flex-grow p-1 pr-3">
+          <div className="space-y-3">
+            {isDetecting && (
+              <div className="text-center text-muted-foreground py-10">
+                <Loader2 className="h-6 w-6 animate-spin inline-block mb-2" />
+                <p>Memproses deteksi...</p>
+              </div>
+            )}
+            {!isDetecting && sortedDetectedPartsList.length === 0 && (
+              <div className="text-center text-muted-foreground py-10 font-light">
+                <Bot className="h-8 w-8 mx-auto mb-2 font-light" />
+                Belum ada hasil deteksi.
+              </div>
+            )}
+            {!isDetecting &&
+              sortedDetectedPartsList.length > 0 &&
+              unmigratedPartsCount === 0 && (
+                <div className="text-center text-green-600 py-4 font-light border rounded-md bg-green-50 dark:bg-green-950/30">
+                  <Check className="h-6 w-6 mx-auto mb-1 font-light" />
+                  Semua part telah dimigrasi.
+                </div>
+              )}
+
+            {sortedDetectedPartsList.map(([partName, partData]) => {
+              const isMigrated = migratedParts.has(partName);
+              const isMultiView = partData.isMultiView;
+
+              let cardClass = "bg-background/50";
+              if (!isMigrated && isMultiView) {
+                cardClass =
+                  "bg-yellow-50 border-yellow-300 dark:bg-yellow-900/30 dark:border-yellow-700";
+              } else if (!isMigrated && !isMultiView) {
+                cardClass =
+                  "bg-blue-50 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700";
+              }
+
+              return (
+                <div
+                  key={partName}
+                  className={`p-3 border rounded-lg space-y-3 ${cardClass}`}
+                >
+                  <div className="flex justify-between items-center font-light">
+                    <Label className="text-base sm:text-lg font-light break-all">{partName}</Label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7"
+                      onClick={() =>
+                        viewAnnotatedImages(partData.byView)
+                      }
+                      disabled={partData.byView.size === 0}
+                    >
+                      <Eye className="h-4 w-4 sm:mr-1" /> 
+                      <span className="hidden sm:inline">({partData.byView.size} View)</span>
+                    </Button>
+                  </div>
+
+                  <div className="pl-2 space-y-1">
+                    <Label className="text-xs font-light text-muted-foreground">
+                      Deteksi per View:
+                    </Label>
+                    {Array.from(partData.byView.entries()).map(
+                      ([view, data]) => (
+                        <div
+                          key={view}
+                          className="flex justify-between items-center text-sm font-light"
+                        >
+                          <span className="capitalize">{view}:</span>
+                          <span>{data.qty}</span>
+                        </div>
+                      )
+                    )}
+                    <div className="flex justify-between font-light items-center text-sm pt-1 border-t">
+                      <span>Total Deteksi:</span>
+                      <span>{partData.totalDetected}</span>
+                    </div>
+                  </div>
+
+                  {!isMigrated && isMultiView && (
+                    <p className="text-xs font-light text-yellow-800 dark:text-yellow-300">
+                      ⚠️ Terdeteksi di {partData.byView.size} view.
+                      Periksa total actual qty.
+                    </p>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <Label
+                      htmlFor={`qty-migrate-${partName}`}
+                      className="text-sm font-light whitespace-nowrap"
+                    >
+                      Act. Qty
+                    </Label>
+                    <Input
+                      id={`qty-migrate-${partName}`}
+                      type="number"
+                      className="h-8 w-16"
+                      min="0"
+                      value={partMigrationQuantities[partName] || 0}
+                      onChange={(e) =>
+                        handleMigrationQtyChange(
+                          partName,
+                          parseInt(e.target.value) || 0
+                        )
+                      }
+                      disabled={!canEdit || isMigrated}
+                    />
+                    <Button
+                      className="flex-1 h-8 font-light"
+                      size="sm"
+                      onClick={() => handleMigratePart(partName)}
+                      disabled={!canEdit || isMigrated}
+                      variant={isMigrated ? "secondary" : "default"}
+                    >
+                      {isMigrated ? (
+                        <PackageCheck className="mr-2 h-4 w-4" />
+                      ) : (
+                        <PackagePlus className="mr-2 h-4 w-4" />
+                      )}
+                      {isMigrated
+                        ? "Moved"
+                        : "Move to Final"}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
+  );
+
+  const actualSection = (
+    <Card className="h-full flex flex-col">
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>3. Actual List</CardTitle>
+            <CardDescription className="mt-2">
+              List final part.
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRevertAll}
+            disabled={
+              !canEdit || isDetecting || revertablePartsCount === 0
+            }
+          >
+            <Undo2 className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Rollback</span>
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4 flex flex-col flex-grow h-[60vh] overflow-scroll">
+        <ScrollArea className="flex-grow rounded-md">
+          <div className="space-y-4 font-light">
+            {actualParts.map((part) => {
+              const wasDetected = Object.keys(groupedDetections).includes(
+                part.material
+              );
+
+              return (
+                <div
+                  key={part.material}
+                  className="p-3 border rounded-lg space-y-3"
+                >
+                  <div className="flex justify-between items-center">
+                    <Label className="font-light text-base break-all">{part.material}</Label>
+
+                    {wasDetected ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-[#008A15]"
+                        onClick={() => handleRevertPart(part.material)}
+                        disabled={!canEdit}
+                        title="Kembalikan ke Hasil Deteksi"
+                      >
+                        <Undo2 className="h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-red-600"
+                        onClick={() => handleRemovePart(part.material)}
+                        disabled={!canEdit}
+                        title="Hapus Part Manual"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <Label className="font-light" htmlFor={`qty-edit-${part.material}`}>
+                      Qty
+                    </Label>
+                    <Input
+                      id={`qty-edit-${part.material}`}
+                      type="number"
+                      className="h-8 w-20"
+                      min="1"
+                      value={part.qty}
+                      onChange={(e) =>
+                        handlePartQtyChange(
+                          part.material,
+                          parseInt(e.target.value) || 1
+                        )
+                      }
+                      disabled={!canEdit}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-light mt-2">Views:</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {VIEW_OPTIONS.map((view) => (
+                        <div
+                          key={view}
+                          className="flex items-center space-x-2"
+                        >
+                          <Checkbox
+                            id={`view-edit-${part.material}-${view}`}
+                            checked={part.views.includes(view)}
+                            onCheckedChange={(checked) =>
+                              handlePartViewChange(
+                                part.material,
+                                view,
+                                !!checked
+                              )
+                            }
+                            disabled={!canEdit}
+                          />
+                          <Label
+                            htmlFor={`view-edit-${part.material}-${view}`}
+                            className="font-light capitalize text-xs"
+                          >
+                            {view}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {actualParts.length === 0 && (
+              <div className="text-center text-muted-foreground py-10 font-light">
+                <ListTodo className="h-8 w-8 mx-auto mb-2 font-light" />
+                Belum ada part.
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+
+        <div className="flex gap-2">
+          <Input
+            placeholder="Part baru..."
+            value={newPartName}
+            onChange={(e) => setNewPartName(e.target.value)}
+            disabled={!canEdit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleAddPart();
+            }}
+          />
+          <Button onClick={handleAddPart} disabled={!canEdit} size="icon">
+            <PackagePlus className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  // --- LAYOUT COMPONENTS END ---
+
+
   return (
     <>
+      {/* Modals */}
       <Dialog
         open={isModalOpen}
         onOpenChange={(open) => {
@@ -1045,15 +1604,15 @@ export function DetailTrackingPage() {
           if (!open) setModalPartData(null);
         }}
       >
-        <DialogContent className="sm:max-w-[90vw] h-[90vh] flex flex-col">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[90vw] h-[90vh] flex flex-col p-0 sm:p-6">
+          <DialogHeader className="p-4 sm:p-0">
             <DialogTitle>Detail Part Terdeteksi</DialogTitle>
           </DialogHeader>
 
           {modalPartData && modalPartData.length > 0 ? (
             <Tabs
               defaultValue={modalPartData[0].view}
-              className="flex-1 flex flex-col overflow-hidden"
+              className="flex-1 flex flex-col overflow-hidden px-4 sm:px-0"
             >
               <TabsList className="overflow-x-auto w-full justify-start h-auto p-1">
                 {modalPartData.map((data) => (
@@ -1062,7 +1621,7 @@ export function DetailTrackingPage() {
                     value={data.view}
                     className="capitalize"
                   >
-                    {data.view} (Qty: {data.qty})
+                    {data.view} ({data.qty})
                   </TabsTrigger>
                 ))}
               </TabsList>
@@ -1073,12 +1632,12 @@ export function DetailTrackingPage() {
                   value={data.view}
                   className="flex-1 overflow-hidden mt-2"
                 >
-                  <div className="grid grid-cols-2 gap-4 h-full">
-                    <div className="flex flex-col border rounded-md p-2 overflow-hidden">
-                      <h3 className="text-lg mb-2">
-                        Anotasi Penuh ({data.view})
+                  <div className="flex flex-col md:grid md:grid-cols-2 gap-4 h-full overflow-y-auto">
+                    <div className="flex flex-col border rounded-md p-2 min-h-[300px]">
+                      <h3 className="text-lg mb-2 font-medium">
+                        Anotasi ({data.view})
                       </h3>
-                      <div className="flex-1 relative overflow-hidden flex items-center justify-center">
+                      <div className="flex-1 relative overflow-hidden flex items-center justify-center bg-muted/20">
                         <img
                           src={data.fullImage}
                           alt={`Full anotasi ${data.view}`}
@@ -1088,11 +1647,11 @@ export function DetailTrackingPage() {
                     </div>
 
                     <div className="flex flex-col border rounded-md p-2 overflow-hidden">
-                      <h3 className="text-lg mb-2">
-                        Potongan Part (Crops) - {data.crops.length} pcs
+                      <h3 className="text-lg mb-2 font-medium">
+                        Crops ({data.crops.length})
                       </h3>
-                      <ScrollArea className="flex-1">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 p-1">
+                      <ScrollArea className="flex-1 h-[200px] md:h-auto">
+                        <div className="grid grid-cols-3 gap-2 p-1">
                           {data.crops.map((crop, index) => (
                             <img
                               key={index}
@@ -1119,7 +1678,7 @@ export function DetailTrackingPage() {
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="p-4 sm:p-0">
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>
               Tutup
             </Button>
@@ -1127,6 +1686,7 @@ export function DetailTrackingPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Edit View Modal (Canvas) */}
       <Dialog
         open={isEditViewModalOpen}
         onOpenChange={(open) => {
@@ -1139,18 +1699,18 @@ export function DetailTrackingPage() {
           setIsEditViewModalOpen(open);
         }}
       >
-        <DialogContent className="sm:max-w-[90vw] h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>
-              Edit Anotasi - View: {currentViewData?.view}
+        <DialogContent className="max-w-[100vw] w-full h-[100vh] sm:max-w-[90vw] sm:h-[90vh] flex flex-col p-0 sm:p-6">
+          <DialogHeader className="p-4 sm:p-0 bg-background z-10">
+            <DialogTitle className="font-light">
+              Edit Anotation - {currentViewData?.view}
             </DialogTitle>
           </DialogHeader>
           
-          <div className="grid grid-cols-4 gap-4 flex-1 h-full w-full overflow-hidden">
+          <div className="flex flex-col md:grid md:grid-cols-4 gap-4 flex-1 w-full overflow-hidden relative">
             
-            <div className="col-span-1 flex flex-col border-r pr-4">
-              <Separator className="mb-4" />
-              <ScrollArea className="flex-1">
+            <div className="hidden md:flex md:col-span-1 flex-col border-r pr-4 h-full">
+               <Separator className="mb-4" />
+               <ScrollArea className="flex-1">
                 <div className="space-y-2">
                   {annotationSummary.map((item) => {
                     const isSelected = selectedClassName === item.className;
@@ -1196,17 +1756,12 @@ export function DetailTrackingPage() {
                       </Button>
                     );
                   })}
-                  {annotationSummary.length === 0 && (
-                     <p className="text-sm text-muted-foreground text-center p-4">
-                       Tidak ada anotasi.
-                     </p>
-                  )}
                 </div>
-              </ScrollArea>
+               </ScrollArea>
             </div>
             
-            <div className="col-span-3 h-full w-full overflow-hidden relative">
-              <div className="absolute top-1/2 -translate-y-1/2 right-4 z-10 bg-background p-1.5 rounded-lg border shadow-md flex flex-col gap-1">
+            <div className="flex-1 md:col-span-3 h-full w-full overflow-hidden relative bg-neutral-100 dark:bg-neutral-900">
+              <div className="absolute top-4 right-4 z-10 bg-background p-1.5 rounded-lg border shadow-md flex flex-col gap-1">
                 <Button
                   variant={annotationMode === "pan" ? "default" : "outline"}
                   size="icon"
@@ -1241,21 +1796,21 @@ export function DetailTrackingPage() {
             </div>
           </div>
           
-          <DialogFooter>
+          <DialogFooter className="p-4 sm:p-0  z-10 border-t sm:border-none">
             <Button
               variant="outline"
               onClick={() => setIsEditViewModalOpen(false)}
+              className="mr-2"
             >
               Batal
             </Button>
             <Button onClick={saveEditedDetections} disabled={!canEdit}>
               <Save className="h-4 w-4 mr-2" />
-              Simpan Perubahan
+              Simpan
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
 
       <Dialog 
         open={isAddPartModalOpen} 
@@ -1356,589 +1911,97 @@ export function DetailTrackingPage() {
         </DialogContent>
       </Dialog>
 
-      <div className="container mx-auto">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push("/tracking")}
-              className="mb-2"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Kembali ke List
-            </Button>
-            <h1 className="text-3xl">Detail Tracking (Scan)</h1>
-            <div className="flex flex-wrap items-center gap-2 mt-2">
-              <Badge variant={"secondary"} className="font-light">
-                Project: {trackingData.projectName?.String}
-              </Badge>
-              <Badge variant={"secondary"} className="font-light">
-                WBS: {trackingData.wbsNumber?.String}
-              </Badge>
-              <Badge variant={"secondary"} className="font-light">
-                Compartment Number: {trackingData.compartmentNumber?.toString()}
-              </Badge>
-              <Badge variant={"secondary"} className="font-light">
-                Switchboard Name: {trackingData.switchboardName?.toString()}
-              </Badge>
+      <div className="container mx-auto pb-16">
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="flex justify-between items-start">
+            <div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push("/tracking")}
+                className="mb-2"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Kembali
+              </Button>
+              <h1 className="text-4xl tracking-tight">Detail Tracking</h1>
             </div>
+            {canEdit && (
+              <div className="hidden sm:flex items-center justify-center h-10 px-4 py-2 text-sm rounded-md bg-muted w-48">
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin text-muted-foreground" />
+                    <span className="text-muted-foreground">Menyimpan...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4 mr-2 text-green-600" />
+                    <span className="text-green-600">Otomatis tersimpan</span>
+                  </>
+                )}
+              </div>
+            )}
           </div>
-          {canEdit && (
-            <div className="flex items-center justify-center h-10 px-4 py-2 text-sm rounded-md bg-muted w-48">
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin text-muted-foreground" />
-                  <span className="text-muted-foreground">Menyimpan...</span>
-                </>
-              ) : (
-                <>
-                  <Check className="h-4 w-4 mr-2 text-green-600" />
-                  <span className="text-green-600">Otomatis tersimpan</span>
-                </>
-              )}
-            </div>
-          )}
+          
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+             <Badge variant="secondary" className="px-2 py-1 font-normal">
+                {trackingData.projectName?.String || "-"}
+             </Badge>
+             <Badge variant="secondary" className="px-2 py-1 font-normal">
+                WBS: {trackingData.wbsNumber?.String || "-"}
+             </Badge>
+             <Badge variant="secondary" className="px-2 py-1 font-normal">
+                {trackingData.switchboardName || "-"}
+             </Badge>
+             <Badge variant="secondary" className="px-2 py-1 font-normal">
+                Compartment: {trackingData.compartmentNumber || "-"}
+             </Badge>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>1. Upload & Assign View</CardTitle>
-                  <CardDescription className="mt-2">
-                    {hasSavedDetections
-                      ? "Hasil deteksi sudah tersimpan."
-                      : "Drag files or click select."}
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="icon">
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>Detection Settings</DialogTitle>
-                      </DialogHeader>
-                      <div className="grid gap-6 py-4">
-                        <div className="space-y-3">
-                          <Label
-                            htmlFor="confidence"
-                            className="flex justify-between mb-2"
-                          >
-                            <span>Confidence</span>
-                            <span className="text-primary">
-                              {confidence.toFixed(2)}
-                            </span>
-                          </Label>
-                          <Slider
-                            id="confidence"
-                            defaultValue={[confidence]}
-                            min={0}
-                            max={1}
-                            step={0.05}
-                            onValueChange={(val) => setConfidence(val[0])}
-                            disabled={
-                              !canEdit || isDetecting || hasSavedDetections
-                            }
-                          />
-                        </div>
-                        <div className="space-y-3">
-                          <Label
-                            htmlFor="iou"
-                            className="flex justify-between mb-2"
-                          >
-                            <span>IoU</span>
-                            <span className="text-primary">
-                              {iou.toFixed(2)}
-                            </span>
-                          </Label>
-                          <Slider
-                            id="iou"
-                            defaultValue={[iou]}
-                            min={0}
-                            max={1}
-                            step={0.05}
-                            onValueChange={(val) => setIou(val[0])}
-                            disabled={
-                              !canEdit || isDetecting || hasSavedDetections
-                            }
-                          />
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          type="button"
-                          onClick={() =>
-                            (
-                              document.querySelector(
-                                '[data-state="open"] [aria-label="Close"]'
-                              ) as HTMLElement
-                            )?.click()
-                          }
-                        >
-                          Done
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-
-                  <Button
-                    onClick={handleSelectClick}
-                    disabled={!canEdit || isDetecting || hasSavedDetections}
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Select Images
-                  </Button>
-                  <Input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={handleFileChange}
-                    disabled={!canEdit || isDetecting || hasSavedDetections}
-                    className="hidden"
-                  />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent
-              className={`flex flex-col h-[52vh] overflow-scroll p-4 transition-colors ${
-                isDragging
-                  ? "bg-primary/5 ring-2 ring-primary ring-inset"
-                  : hasSavedDetections
-                  ? "bg-muted/30"
-                  : "bg-transparent"
-              }`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              {uploadedFiles.length > 0 ? (
-                <ScrollArea className="flex-grow  rounded-md p-2">
-                  <div className="space-y-3">
-                    {uploadedFiles.map((file, index) => (
-                      <div
-                        key={file.preview}
-                        className="flex items-center gap-3 p-2 border rounded-lg"
-                      >
-                        <Image
-                          src={file.preview}
-                          alt={file.file?.name || `Preview ${index}`}
-                          width={64}
-                          height={64}
-                          className="h-16 w-16 object-cover rounded-md bg-muted"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm truncate">
-                            {file.file?.name || `${file.view} (Tersimpan)`}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {file.file
-                              ? `${(file.file.size / 1024 / 1024).toFixed(
-                                  2
-                                )} MB`
-                              : "Deteksi tersimpan"}
-                          </p>
-                          <Select
-                            value={file.view || ""}
-                            onValueChange={(value) => setFileView(index, value)}
-                            disabled={
-                              !canEdit || isDetecting || hasSavedDetections
-                            }
-                          >
-                            <SelectTrigger className="h-8 text-xs mt-1">
-                              <SelectValue placeholder="Pilih View" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {VIEW_OPTIONS.map((v) => (
-                                <SelectItem
-                                  key={v}
-                                  value={v}
-                                  className="capitalize"
-                                >
-                                  {v}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        {hasSavedDetections && canEdit && (
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => openEditView(file.view!)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-red-600"
-                          onClick={() => removeUploadedFile(index)}
-                          disabled={
-                            !canEdit ||
-                            isDetecting ||
-                            hasSavedDetections ||
-                            !file.file
-                          }
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              ) : (
-                <div className="flex-grow text-center py-16 border border-dashed rounded-md flex flex-col justify-center items-center">
-                  <ImageIcon
-                    className="mx-auto h-12 w-12 text-muted-foreground mb-4"
-                  />
-                  <h3 className="text-lg mb-2 font-regular">
-                    {hasSavedDetections
-                      ? "Deteksi Tersimpan"
-                      : "No images uploaded"}
-                  </h3>
-                  <p className="text-sm font-light text-muted-foreground">
-                    {hasSavedDetections
-                      ? "Klik 'Reset Deteksi' untuk upload ulang."
-                      : 'Drag and drop files here, or use the "Select Images" button.'}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter>
-              {hasSavedDetections ? (
-                <Button
-                  className="w-full"
-                  variant="destructive"
-                  onClick={handleResetDetection}
-                  disabled={!canEdit || isResetting || isDetecting}
-                >
-                  {isResetting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Undo2 className="mr-2 h-4 w-4" />
-                  )}
-                  Reset Deteksi
-                </Button>
-              ) : (
-                <Button
-                  className="w-full"
-                  onClick={handleStartDetection}
-                  disabled={!canEdit || !canStartDetection || isDetecting}
-                >
-                  {isDetecting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Bot className="mr-2 h-4 w-4" />
-                  )}
-                  Mulai Deteksi ({uploadedFiles.length} Gambar)
-                </Button>
-              )}
-            </CardFooter>
-          </Card>
-
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>2. Hasil Deteksi</CardTitle>
-                  <CardDescription className="mt-2">
-                    Hasil deteksi di-grup per part.
-                  </CardDescription>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleMigrateAll}
-                  disabled={
-                    !canEdit || isDetecting || unmigratedPartsCount === 0
-                  }
-                >
-                  <SendToBack className="h-4 w-4 mr-2" />
-                  Migrasi Semua
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="flex flex-col h-[60vh] overflow-scroll">
-              <ScrollArea className="flex-grow p-1 pr-3">
-                <div className="space-y-3">
-                  {isDetecting && (
-                    <div className="text-center text-muted-foreground">
-                      <Loader2 className="h-6 w-6 animate-spin inline-block" />
-                      <p>Memproses deteksi...</p>
-                    </div>
-                  )}
-                  {!isDetecting && sortedDetectedPartsList.length === 0 && (
-                    <div className="text-center text-muted-foreground py-10 font-light">
-                      <Bot className="h-8 w-8 mx-auto mb-2 font-light" />
-                      Belum ada hasil deteksi.
-                    </div>
-                  )}
-                  {!isDetecting &&
-                    sortedDetectedPartsList.length > 0 &&
-                    unmigratedPartsCount === 0 && (
-                      <div className="text-center text-green-600 py-10 font-light">
-                        <Check className="h-8 w-8 mx-auto mb-2 font-light" />
-                        Semua part terdeteksi telah dimigrasi.
-                      </div>
-                    )}
-
-                  {sortedDetectedPartsList.map(([partName, partData]) => {
-                    const isMigrated = migratedParts.has(partName);
-                    const isMultiView = partData.isMultiView;
-
-                    let cardClass = "bg-background/50";
-                    if (!isMigrated && isMultiView) {
-                      cardClass =
-                        "bg-yellow-50 border-yellow-300 dark:bg-yellow-900/30 dark:border-yellow-700";
-                    } else if (!isMigrated && !isMultiView) {
-                      cardClass =
-                        "bg-blue-50 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700";
-                    }
-
-                    return (
-                      <div
-                        key={partName}
-                        className={`p-3 border rounded-lg space-y-3 ${cardClass}`}
-                      >
-                        <div className="flex justify-between items-center font-light">
-                          <Label className="text-lg font-light">{partName}</Label>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7"
-                            onClick={() =>
-                              viewAnnotatedImages(partData.byView)
-                            }
-                            disabled={partData.byView.size === 0}
-                          >
-                            <Eye className="h-4 w-4 mr-1" /> (
-                            {partData.byView.size} View)
-                          </Button>
-                        </div>
-
-                        <div className="pl-2 space-y-1">
-                          <Label className="text-xs font-light text-muted-foreground">
-                            Deteksi per View:
-                          </Label>
-                          {Array.from(partData.byView.entries()).map(
-                            ([view, data]) => (
-                              <div
-                                key={view}
-                                className="flex justify-between items-center text-sm font-light"
-                              >
-                                <span className="capitalize">{view}:</span>
-                                <span>{data.qty}</span>
-                              </div>
-                            )
-                          )}
-                          <div className="flex justify-between font-light items-center text-sm pt-1 border-t">
-                            <span>Total Deteksi:</span>
-                            <span>{partData.totalDetected}</span>
-                          </div>
-                        </div>
-
-                        {!isMigrated && isMultiView && (
-                          <p className="text-xs font-light text-yellow-800 dark:text-yellow-300">
-                            ⚠️ Terdeteksi di {partData.byView.size} view.
-                            Periksa total actual qty.
-                          </p>
-                        )}
-
-                        <div className="flex items-center gap-2">
-                          <Label
-                            htmlFor={`qty-migrate-${partName}`}
-                            className="text-sm font-light"
-                          >
-                            Actual Qty
-                          </Label>
-                          <Input
-                            id={`qty-migrate-${partName}`}
-                            type="number"
-                            className="h-8 w-20"
-                            min="0"
-                            value={partMigrationQuantities[partName] || 0}
-                            onChange={(e) =>
-                              handleMigrationQtyChange(
-                                partName,
-                                parseInt(e.target.value) || 0
-                              )
-                            }
-                            disabled={!canEdit || isMigrated}
-                          />
-                          <Button
-                            className="flex-1 h-8 font-light"
-                            size="sm"
-                            onClick={() => handleMigratePart(partName)}
-                            disabled={!canEdit || isMigrated}
-                            variant={isMigrated ? "secondary" : "default"}
-                          >
-                            {isMigrated ? (
-                              <PackageCheck className="mr-2 h-4 w-4" />
-                            ) : (
-                              <PackagePlus className="mr-2 h-4 w-4" />
-                            )}
-                            {isMigrated
-                              ? "Telah Dimigrasi"
-                              : "Migrasi ke Actual"}
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>3. List Part Actual</CardTitle>
-                  <CardDescription className="mt-2">
-                    Daftar part final. Bisa di-edit manual atau di-merge.
-                  </CardDescription>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRevertAll}
-                  disabled={
-                    !canEdit || isDetecting || revertablePartsCount === 0
-                  }
-                >
-                  <Undo2 className="h-4 w-4 mr-2" />
-                  Kembalikan Semua
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4 flex flex-col h-[60vh] overflow-scroll">
-              <ScrollArea className="flex-grow rounded-md">
-                <div className="space-y-4 font-light">
-                  {actualParts.map((part) => {
-                    const wasDetected = Object.keys(groupedDetections).includes(
-                      part.material
-                    );
-
-                    return (
-                      <div
-                        key={part.material}
-                        className="p-3 border rounded-lg space-y-3"
-                      >
-                        <div className="flex justify-between items-center">
-                          <Label className="font-light text-lg">{part.material}</Label>
-
-                          {wasDetected ? (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-blue-600"
-                              onClick={() => handleRevertPart(part.material)}
-                              disabled={!canEdit}
-                              title="Kembalikan ke Hasil Deteksi"
-                            >
-                              <Undo2 className="h-4 w-4" />
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-red-600"
-                              onClick={() => handleRemovePart(part.material)}
-                              disabled={!canEdit}
-                              title="Hapus Part Manual"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <Label className="font-light" htmlFor={`qty-edit-${part.material}`}>
-                            Actual Qty
-                          </Label>
-                          <Input
-                            id={`qty-edit-${part.material}`}
-                            type="number"
-                            className="h-8 w-20"
-                            min="1"
-                            value={part.qty}
-                            onChange={(e) =>
-                              handlePartQtyChange(
-                                part.material,
-                                parseInt(e.target.value) || 1
-                              )
-                            }
-                            disabled={!canEdit}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="font-light mt-2">Terlihat di Views:</Label>
-                          <div className="grid grid-cols-3 gap-2">
-                            {VIEW_OPTIONS.map((view) => (
-                              <div
-                                key={view}
-                                className="flex items-center space-x-2"
-                              >
-                                <Checkbox
-                                  id={`view-edit-${part.material}-${view}`}
-                                  checked={part.views.includes(view)}
-                                  onCheckedChange={(checked) =>
-                                    handlePartViewChange(
-                                      part.material,
-                                      view,
-                                      !!checked
-                                    )
-                                  }
-                                  disabled={!canEdit}
-                                />
-                                <Label
-                                  htmlFor={`view-edit-${part.material}-${view}`}
-                                  className="font-light capitalize"
-                                >
-                                  {view}
-                                </Label>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {actualParts.length === 0 && (
-                    <div className="text-center text-muted-foreground py-10 font-light">
-                      <ImageIcon className="h-8 w-8 mx-auto mb-2 font-light" />
-                      Belum ada part ditambahkan.
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
-
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Ketik nama part baru..."
-                  value={newPartName}
-                  onChange={(e) => setNewPartName(e.target.value)}
-                  disabled={!canEdit}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleAddPart();
-                  }}
-                />
-                <Button onClick={handleAddPart} disabled={!canEdit} size="icon">
-                  <PackagePlus className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="hidden lg:grid lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1 h-full">
+             {uploadSection}
+          </div>
+          <div className="lg:col-span-1 h-full">
+             {detectionSection}
+          </div>
+          <div className="lg:col-span-1 h-full">
+             {actualSection}
+          </div>
         </div>
+
+        <div className="lg:hidden">
+          <Tabs defaultValue="upload" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-4">
+              <TabsTrigger value="upload" className="flex gap-2">
+                <UploadCloud className="h-4 w-4" /> 
+                <span className="hidden sm:inline">Upload</span>
+              </TabsTrigger>
+              <TabsTrigger value="results" className="flex gap-2">
+                 <ScanEye className="h-4 w-4" />
+                 <span className="hidden sm:inline">Hasil</span>
+                 <span className="sm:hidden">Hasil</span>
+              </TabsTrigger>
+              <TabsTrigger value="actual" className="flex gap-2">
+                 <ListTodo className="h-4 w-4" />
+                 <span className="hidden sm:inline">List Final</span>
+                 <span className="sm:hidden">Final</span>
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="upload">
+              {uploadSection}
+            </TabsContent>
+            <TabsContent value="results">
+              {detectionSection}
+            </TabsContent>
+            <TabsContent value="actual">
+              {actualSection}
+            </TabsContent>
+          </Tabs>
+        </div>
+
       </div>
     </>
   );
