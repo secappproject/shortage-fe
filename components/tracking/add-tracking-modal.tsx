@@ -27,7 +27,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, PackagePlus } from "lucide-react";
+import { Trash2, PackagePlus, PlusCircle } from "lucide-react";
 import { DatePicker } from "../ui/date-picker";
 import { toast } from "sonner";
 
@@ -47,8 +47,13 @@ export function AddTrackingModal({
   const [isLoading, setIsLoading] = useState(false);
   const role = useAuthStore((state) => state.role);
   const username = useAuthStore((state) => state.username);
-  
+
+  // State Project
   const [projectId, setProjectId] = useState<string>("");
+  // State untuk Project Baru (jika memilih 'new')
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newWbsNumber, setNewWbsNumber] = useState("");
+
   const [switchboardName, setSwitchboardName] = useState("");
   const [compartmentNumber, setCompartmentNumber] = useState("");
   const [mechAssemblyBy, setMechAssemblyBy] = useState("");
@@ -84,9 +89,7 @@ export function AddTrackingModal({
   };
 
   const handleRemovePart = (material: string) => {
-    setActualParts((prev) =>
-      prev.filter((p) => p.material !== material)
-    );
+    setActualParts((prev) => prev.filter((p) => p.material !== material));
   };
 
   const handlePartQtyChange = (material: string, qty: number) => {
@@ -134,29 +137,43 @@ export function AddTrackingModal({
   };
 
   const handleSubmit = async () => {
+    // Validasi Basic
     if (!projectId || !switchboardName || !compartmentNumber) {
-      alert("Project, Switchboard Name, dan Compartment No. wajib diisi.");
+      toast.warning("Project, Switchboard Name, dan Compartment No. wajib diisi.");
       return;
     }
+
+    // Validasi Project Baru
+    if (projectId === "new") {
+      if (!newProjectName.trim() || !newWbsNumber.trim()) {
+        toast.warning("Nama Project dan WBS Number wajib diisi untuk project baru.");
+        return;
+      }
+    }
+
     setIsLoading(true);
 
     try {
-      const numericProjectId = parseInt(projectId, 10);
-      const projectIdPayload =
-        !isNaN(numericProjectId) && numericProjectId > 0
-          ? { Int64: numericProjectId, Valid: true }
-          : null;
+      // Persiapkan Project ID Payload
+      let projectIdPayload = null;
+      
+      if (projectId !== "new") {
+        const numericProjectId = parseInt(projectId, 10);
+        if (!isNaN(numericProjectId) && numericProjectId > 0) {
+          projectIdPayload = { Int64: numericProjectId, Valid: true };
+        }
+      }
 
-      const payload: ProjectTrackingPayload = {
+      // Construct Payload
+      // Note: Pastikan backend menghandle `newProjectName` & `newWbsNumber` jika projectId kosong
+      const payload: any = {
         projectId: projectIdPayload,
         switchboardName,
         compartmentNumber,
-        mechAssemblyBy:
-          mechAssemblyBy
-            ? { String: mechAssemblyBy, Valid: true }
-            : null,
-        wiringType:
-          wiringType ? { String: wiringType, Valid: true } : null,
+        mechAssemblyBy: mechAssemblyBy
+          ? { String: mechAssemblyBy, Valid: true }
+          : null,
+        wiringType: wiringType ? { String: wiringType, Valid: true } : null,
         wiringBy: wiringBy ? { String: wiringBy, Valid: true } : null,
         statusTest,
         actualParts: actualParts.length > 0 ? actualParts : null,
@@ -165,6 +182,12 @@ export function AddTrackingModal({
           ? { Time: dateTested.toISOString(), Valid: true }
           : null,
       };
+
+      // Tambahkan field manual jika memilih project baru
+      if (projectId === "new") {
+        payload.newProjectName = newProjectName;
+        payload.newWbsNumber = newWbsNumber;
+      }
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/tracking/`,
@@ -184,11 +207,12 @@ export function AddTrackingModal({
       }
 
       const newTracking = await response.json();
+      toast.success("Data tracking berhasil disimpan.");
       onTrackingAdded(newTracking);
       setIsOpen(false);
     } catch (error) {
       console.error("Error adding tracking:", error);
-      alert(error instanceof Error ? error.message : "Terjadi kesalahan.");
+      toast.error(error instanceof Error ? error.message : "Terjadi kesalahan.");
     } finally {
       setIsLoading(false);
     }
@@ -203,7 +227,10 @@ export function AddTrackingModal({
         </DialogDescription>
       </DialogHeader>
 
-      <Tabs defaultValue="general" className="w-full flex-1 overflow-hidden flex flex-col">
+      <Tabs
+        defaultValue="general"
+        className="w-full flex-1 overflow-hidden flex flex-col"
+      >
         <TabsList className="grid w-full grid-cols-2 mb-4">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="parts">Part Detected</TabsTrigger>
@@ -213,12 +240,10 @@ export function AddTrackingModal({
           <ScrollArea className="h-[50vh] md:h-[55vh] pr-4">
             <div className="space-y-4 p-1">
               <h4 className="font-medium text-lg">Detail Project</h4>
-              
+
               {/* Project Select - Layout Atas Bawah */}
               <div className="flex flex-col gap-2">
-                <Label htmlFor="project">
-                  Project
-                </Label>
+                <Label htmlFor="project">Project</Label>
                 <Select onValueChange={setProjectId} value={projectId}>
                   <SelectTrigger id="project">
                     <SelectValue placeholder="Pilih WBS / Project" />
@@ -229,15 +254,48 @@ export function AddTrackingModal({
                         {p.projectName} ({p.wbsNumber})
                       </SelectItem>
                     ))}
+                    <SelectItem value="new" className="text-black focus:text-black">
+                      <div className="flex items-center gap-2">
+                        <PlusCircle className="h-4 w-4" />
+                        Buat Project Baru (Lainnya)
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
+              {projectId === "new" && (
+                <div className="p-4 border border-blue-200 bg-blue-50 rounded-md space-y-3 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="newProjectName" className="text-blue-900">
+                      Nama Project Baru <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="newProjectName"
+                      value={newProjectName}
+                      onChange={(e) => setNewProjectName(e.target.value)}
+                      placeholder="Masukkan Nama Project..."
+                      className="bg-white"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="newWbsNumber" className="text-blue-900">
+                      WBS Number Baru <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="newWbsNumber"
+                      value={newWbsNumber}
+                      onChange={(e) => setNewWbsNumber(e.target.value)}
+                      placeholder="Masukkan WBS Number..."
+                      className="bg-white"
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Switchboard - Layout Atas Bawah */}
               <div className="flex flex-col gap-2">
-                <Label htmlFor="switchboard">
-                  Switchboard
-                </Label>
+                <Label htmlFor="switchboard">Switchboard</Label>
                 <Input
                   id="switchboard"
                   value={switchboardName}
@@ -248,9 +306,7 @@ export function AddTrackingModal({
 
               {/* Compartment - Layout Atas Bawah */}
               <div className="flex flex-col gap-2">
-                <Label htmlFor="compartment">
-                  Compartment
-                </Label>
+                <Label htmlFor="compartment">Compartment</Label>
                 <Input
                   id="compartment"
                   value={compartmentNumber}
@@ -260,12 +316,10 @@ export function AddTrackingModal({
               </div>
 
               <h4 className="font-medium text-lg pt-4">Progress Manufaktur</h4>
-              
+
               {/* Mech Assembly - Layout Atas Bawah */}
               <div className="flex flex-col gap-2">
-                <Label htmlFor="mechAssemblyBy">
-                  Mech. Assembly
-                </Label>
+                <Label htmlFor="mechAssemblyBy">Mech. Assembly</Label>
                 <Input
                   id="mechAssemblyBy"
                   value={mechAssemblyBy}
@@ -276,9 +330,7 @@ export function AddTrackingModal({
 
               {/* Wiring By - Layout Atas Bawah */}
               <div className="flex flex-col gap-2">
-                <Label htmlFor="wiringBy">
-                  Wiring By
-                </Label>
+                <Label htmlFor="wiringBy">Wiring By</Label>
                 <Input
                   id="wiringBy"
                   value={wiringBy}
@@ -289,9 +341,7 @@ export function AddTrackingModal({
 
               {/* Wiring Type - Layout Atas Bawah */}
               <div className="flex flex-col gap-2">
-                <Label htmlFor="wiringType">
-                  Wiring Type
-                </Label>
+                <Label htmlFor="wiringType">Wiring Type</Label>
                 <Input
                   id="wiringType"
                   value={wiringType}
@@ -301,12 +351,10 @@ export function AddTrackingModal({
               </div>
 
               <h4 className="font-medium text-lg pt-4">Progress Test</h4>
-              
+
               {/* Status - Layout Atas Bawah */}
               <div className="flex flex-col gap-2">
-                <Label htmlFor="statusTest">
-                  Status
-                </Label>
+                <Label htmlFor="statusTest">Status</Label>
                 <Select onValueChange={handleStatusChange} value={statusTest}>
                   <SelectTrigger id="statusTest">
                     <SelectValue />
@@ -323,9 +371,7 @@ export function AddTrackingModal({
 
               {/* Tested By - Layout Atas Bawah */}
               <div className="flex flex-col gap-2">
-                <Label htmlFor="testedBy">
-                  Tested By
-                </Label>
+                <Label htmlFor="testedBy">Tested By</Label>
                 <Input
                   id="testedBy"
                   value={testedBy}
@@ -337,9 +383,7 @@ export function AddTrackingModal({
 
               {/* Date Tested - Layout Atas Bawah */}
               <div className="flex flex-col gap-2">
-                <Label htmlFor="dateTested">
-                  Date Tested
-                </Label>
+                <Label htmlFor="dateTested">Date Tested</Label>
                 <div>
                   <DatePicker
                     value={dateTested}
@@ -352,9 +396,11 @@ export function AddTrackingModal({
           </ScrollArea>
         </TabsContent>
 
-        <TabsContent value="parts" className="flex-1 overflow-hidden flex flex-col h-[50vh] md:h-[55vh]">
+        <TabsContent
+          value="parts"
+          className="flex-1 overflow-hidden flex flex-col h-[50vh] md:h-[55vh]"
+        >
           <div className="flex-1 overflow-hidden flex flex-col">
-           
             <div className="flex-grow rounded-md mb-4 overflow-y-auto">
               <div className="space-y-4">
                 {actualParts.map((part) => (
@@ -422,7 +468,8 @@ export function AddTrackingModal({
                 ))}
                 {actualParts.length === 0 && (
                   <p className="text-sm text-center text-muted-foreground pb-10">
-                    Belum ada part ditambahkan. Gunakan input di bawah untuk menambah.
+                    Belum ada part ditambahkan. Gunakan input di bawah untuk
+                    menambah.
                   </p>
                 )}
               </div>
