@@ -48,9 +48,7 @@ export function AddTrackingModal({
   const role = useAuthStore((state) => state.role);
   const username = useAuthStore((state) => state.username);
 
-  // State Project
   const [projectId, setProjectId] = useState<string>("");
-  // State untuk Project Baru (jika memilih 'new')
   const [newProjectName, setNewProjectName] = useState("");
   const [newWbsNumber, setNewWbsNumber] = useState("");
 
@@ -137,16 +135,26 @@ export function AddTrackingModal({
   };
 
   const handleSubmit = async () => {
-    // Validasi Basic
-    if (!projectId || !switchboardName || !compartmentNumber) {
-      toast.warning("Project, Switchboard Name, dan Compartment No. wajib diisi.");
+    const trimmedSwitchboard = switchboardName.trim();
+    const trimmedCompartment = compartmentNumber.trim();
+    const trimmedNewProject = newProjectName.trim();
+    const trimmedNewWbs = newWbsNumber.trim();
+
+    if (!projectId) {
+      toast.warning("Project wajib dipilih.");
       return;
     }
 
-    // Validasi Project Baru
+    if (!trimmedSwitchboard || !trimmedCompartment) {
+      toast.warning("Switchboard Name dan Compartment No. wajib diisi.");
+      return;
+    }
+
     if (projectId === "new") {
-      if (!newProjectName.trim() || !newWbsNumber.trim()) {
-        toast.warning("Nama Project dan WBS Number wajib diisi untuk project baru.");
+      if (!trimmedNewProject || !trimmedNewWbs) {
+        toast.warning(
+          "Nama Project dan WBS Number wajib diisi untuk project baru."
+        );
         return;
       }
     }
@@ -154,9 +162,8 @@ export function AddTrackingModal({
     setIsLoading(true);
 
     try {
-      // Persiapkan Project ID Payload
       let projectIdPayload = null;
-      
+
       if (projectId !== "new") {
         const numericProjectId = parseInt(projectId, 10);
         if (!isNaN(numericProjectId) && numericProjectId > 0) {
@@ -164,12 +171,10 @@ export function AddTrackingModal({
         }
       }
 
-      // Construct Payload
-      // Note: Pastikan backend menghandle `newProjectName` & `newWbsNumber` jika projectId kosong
       const payload: any = {
         projectId: projectIdPayload,
-        switchboardName,
-        compartmentNumber,
+        switchboardName: trimmedSwitchboard, 
+        compartmentNumber: trimmedCompartment, 
         mechAssemblyBy: mechAssemblyBy
           ? { String: mechAssemblyBy, Valid: true }
           : null,
@@ -183,10 +188,10 @@ export function AddTrackingModal({
           : null,
       };
 
-      if (projectId === "new") {
-        payload.newProjectName = { String: newProjectName, Valid: true };
-        payload.newWbsNumber = { String: newWbsNumber, Valid: true };
-      }
+      if (projectId === "new") {
+        payload.newProjectName = { String: trimmedNewProject, Valid: true };
+        payload.newWbsNumber = { String: trimmedNewWbs, Valid: true };
+      }
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/tracking/`,
@@ -240,7 +245,6 @@ export function AddTrackingModal({
             <div className="space-y-4 p-1">
               <h4 className="font-medium text-lg">Detail Project</h4>
 
-              {/* Project Select - Layout Atas Bawah */}
               <div className="flex flex-col gap-2">
                 <Label htmlFor="project">Project</Label>
                 <Select onValueChange={setProjectId} value={projectId}>
@@ -292,7 +296,6 @@ export function AddTrackingModal({
                 </div>
               )}
 
-              {/* Switchboard - Layout Atas Bawah */}
               <div className="flex flex-col gap-2">
                 <Label htmlFor="switchboard">Switchboard</Label>
                 <Input
@@ -303,7 +306,6 @@ export function AddTrackingModal({
                 />
               </div>
 
-              {/* Compartment - Layout Atas Bawah */}
               <div className="flex flex-col gap-2">
                 <Label htmlFor="compartment">Compartment</Label>
                 <Input
@@ -316,7 +318,6 @@ export function AddTrackingModal({
 
               <h4 className="font-medium text-lg pt-4">Progress Manufaktur</h4>
 
-              {/* Mech Assembly - Layout Atas Bawah */}
               <div className="flex flex-col gap-2">
                 <Label htmlFor="mechAssemblyBy">Mech. Assembly</Label>
                 <Input
