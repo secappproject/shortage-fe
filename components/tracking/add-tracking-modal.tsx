@@ -183,11 +183,10 @@ export function AddTrackingModal({
           : null,
       };
 
-      // Tambahkan field manual jika memilih project baru
-      if (projectId === "new") {
-        payload.newProjectName = newProjectName;
-        payload.newWbsNumber = newWbsNumber;
-      }
+      if (projectId === "new") {
+        payload.newProjectName = { String: newProjectName, Valid: true };
+        payload.newWbsNumber = { String: newWbsNumber, Valid: true };
+      }
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/tracking/`,

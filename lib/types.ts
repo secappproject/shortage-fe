@@ -195,6 +195,8 @@ export interface ProjectTrackingPayload {
   testedBy: SqlNullString | null;
   dateTested: SqlNullTime | null;
   actualParts: ActualPart[] | null;
+  newProjectName?: string;
+	newWbsNumber?: string;
 }
 export interface CompareItemDetail {
   material: string;
